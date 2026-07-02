@@ -1,0 +1,1930 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中石油囤货交易分析报告</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e40af; --primary-light: #dbeafe;
+            --blue: #3b82f6; --cyan: #06b6d4; --green: #10b981;
+            --yellow: #f59e0b; --red: #ef4444; --purple: #8b5cf6;
+            --orange: #f97316;
+            --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1; --gray-500: #64748b; --gray-700: #334155; --gray-900: #0f172a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: var(--gray-50); color: var(--gray-700); line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3a5f, #2563eb);
+            color: white; padding: 36px 20px; text-align: center;
+        }
+        .header h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+        .header p { opacity: 0.9; font-size: 14px; max-width: 720px; margin: 0 auto; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+        .nav { background: white; border-bottom: 1px solid var(--gray-200); padding: 10px 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 6px; flex-wrap: wrap; }
+        .nav a { padding: 6px 14px; border-radius: 6px; font-size: 13px; color: var(--gray-500); text-decoration: none; font-weight: 500; transition: all 0.2s; }
+        .nav a:hover { background: var(--primary-light); color: var(--primary); }
+        .section { margin-bottom: 36px; }
+        .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .section-num { background: var(--primary); color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+        .section-header h2 { font-size: 20px; color: var(--gray-900); }
+        .section-desc { color: var(--gray-500); font-size: 14px; margin-bottom: 16px; padding-left: 48px; }
+        .stat-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: white; border-radius: 10px; padding: 18px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .stat-card.accent { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: white; }
+        .stat-card.accent .stat-label { color: rgba(255,255,255,0.8); }
+        .stat-card.red { background: linear-gradient(135deg, #dc2626, #ef4444); color: white; }
+        .stat-card.red .stat-label { color: rgba(255,255,255,0.8); }
+        .stat-card.green { background: linear-gradient(135deg, #059669, #10b981); color: white; }
+        .stat-card.green .stat-label { color: rgba(255,255,255,0.8); }
+        .stat-card.orange { background: linear-gradient(135deg, #d97706, #f59e0b); color: white; }
+        .stat-card.orange .stat-label { color: rgba(255,255,255,0.8); }
+        .stat-card.purple { background: linear-gradient(135deg, #7c3aed, #8b5cf6); color: white; }
+        .stat-card.purple .stat-label { color: rgba(255,255,255,0.8); }
+        .stat-value { font-size: 24px; font-weight: 800; }
+        .stat-value-sm { font-size: 18px; font-weight: 800; }
+        .stat-label { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+        .box { background: white; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .box h4 { font-size: 15px; color: var(--gray-700); margin-bottom: 14px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th { background: var(--gray-50); padding: 9px 10px; text-align: left; font-weight: 600; color: var(--gray-500); font-size: 12px; border-bottom: 2px solid var(--gray-200); }
+        .data-table td { padding: 8px 10px; border-bottom: 1px solid var(--gray-100); }
+        .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .data-table .ctr { text-align: center; font-variant-numeric: tabular-nums; }
+        .data-table tbody tr:hover { background: var(--gray-50); }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .tag-green { background: #d1fae5; color: #065f46; }
+        .tag-blue { background: #dbeafe; color: #1e40af; }
+        .tag-red { background: #fee2e2; color: #991b1b; }
+        .tag-yellow { background: #fef3c7; color: #92400e; }
+        .tag-purple { background: #ede9fe; color: #5b21b6; }
+        .chart-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 16px; }
+        .chart-row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+        .chart-box { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .chart-box h4 { font-size: 14px; color: var(--gray-700); margin-bottom: 12px; text-align: center; }
+        .chart-container { height: 240px; margin-bottom: 10px; }
+        .chart-container-wide { height: 280px; margin-bottom: 10px; }
+        .chart-container-tall { height: 320px; margin-bottom: 10px; }
+        .insight-box {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe); border-radius: 10px;
+            padding: 18px 22px; margin-bottom: 16px; border-left: 4px solid #2563eb;
+        }
+        .insight-box p { font-size: 14px; color: #1e3a8a; margin-bottom: 4px; }
+        .insight-box strong { color: #1e40af; }
+        .insight-warn {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2); border-left: 4px solid #dc2626;
+        }
+        .insight-warn p { color: #991b1b; }
+        .insight-warn strong { color: #7f1d1d; }
+        .pnl-pos { color: #059669; font-weight: 700; }
+        .pnl-neg { color: #dc2626; font-weight: 700; }
+        .full-chart { background: white; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .full-chart h4 { font-size: 15px; color: var(--gray-700); margin-bottom: 14px; }
+        .sub-section { margin-bottom: 20px; }
+        .sub-title { font-size: 15px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px; padding-left: 12px; border-left: 3px solid var(--blue); }
+        @media (max-width: 900px) {
+            .chart-row, .chart-row-3 { grid-template-columns: 1fr; }
+            .stat-summary, .stat-grid-5 { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>中石油系囤货交易分析报告</h1>
+    <p>分析期间：2025年1月 — 2026年5月 | 数据来源：订单明细 | 归属石化厂：中石油系 | 涵盖 7 位囤货人</p>
+</div>
+
+<nav class="nav">
+    <div class="nav-inner">
+        <a href="#overview">整体概览</a>
+        <a href="#trader">囤货人分析</a>
+        <a href="#yearly">年度对比</a>
+        <a href="#monthly">月度走势</a>
+        <a href="#product">品类与牌号</a>
+        <a href="#producer">生产商分析</a>
+        <a href="#customer">客户分析</a>
+        <a href="#channel">渠道与金融</a>
+        <a href="#cash-profile">先款客户画像</a>
+        <a href="#summary">总结</a>
+    </div>
+</nav>
+
+<div class="container">
+
+<!-- ==================== 1. 整体概览 ==================== -->
+<div class="section" id="overview">
+    <div class="section-header">
+        <div class="section-num">1</div>
+        <h2>整体概览</h2>
+    </div>
+    <p class="section-desc">中石油系石化厂货源在2025年1月 — 2026年5月期间的囤货交易整体情况，涵盖全部 7 位囤货人。</p>
+
+    <div class="stat-grid-5">
+        <div class="stat-card accent">
+            <div class="stat-value">1,288</div>
+            <div class="stat-label">订单行项目数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">34,729</div>
+            <div class="stat-label">总交易规模（吨）</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-value">-1,205,906</div>
+            <div class="stat-label">总盈亏（元）</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">-34.7</div>
+            <div class="stat-label">吨均盈亏（元/吨）</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">47.36%</div>
+            <div class="stat-label">盈利订单占比</div>
+        </div>
+    </div>
+
+    <div class="stat-summary">
+        <div class="stat-card orange">
+            <div class="stat-value-sm">-941,070</div>
+            <div class="stat-label">空单补货订单亏损（元）</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value-sm">193</div>
+            <div class="stat-label">空单补货订单笔数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value-sm">5,706</div>
+            <div class="stat-label">空单补货规模（吨）</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value-sm">78.04%</div>
+            <div class="stat-label">占总亏损比例</div>
+        </div>
+    </div>
+
+    <div class="box">
+        <h4>分年度核心指标对比</h4>
+        <table class="data-table"><thead><tr><th>指标</th><th style='text-align:center'>2025年</th><th style='text-align:center'>2026年</th></tr></thead><tbody><tr><td>订单数</td><td class='ctr'>747</td><td class='ctr'>541</td></tr><tr><td>交易规模（吨）</td><td class='ctr'>19,701</td><td class='ctr'>15,028</td></tr><tr><td>总盈亏（元）</td><td class='ctr pnl-neg'>-196,376</td><td class='ctr pnl-neg'>-1,009,530</td></tr><tr><td>吨均盈亏（元/吨）</td><td class='ctr pnl-neg'>-10.0</td><td class='ctr pnl-neg'>-67.2</td></tr><tr><td>盈利订单占比</td><td class='ctr'>46.32%</td><td class='ctr'>48.80%</td></tr><tr><td>空单补货亏损（元）</td><td class='ctr pnl-neg'>-35,334</td><td class='ctr pnl-neg'>-905,736</td></tr><tr><td>空单补货规模（吨）</td><td class='ctr'>3,420</td><td class='ctr'>2,286</td></tr></tbody></table>
+    </div>
+
+    <div class="insight-box insight-warn">
+        <p><strong>整体亏损较大：</strong>中石油系货源囤货交易累计亏损约 <strong>1,205,906</strong> 元（34,729 吨），吨均亏损 <strong>34.7</strong> 元/吨。</p>
+        <p><strong>空单补货贡献主要亏损：</strong>空单补货订单共 193 笔（5,706 吨），亏损 <strong>941,070</strong> 元，占总亏损的 <strong>78.04%</strong>，吨均亏损 164.9 元/吨；非空单补货订单亏损 264,836 元，吨均亏损 9.1 元/吨。</p>
+    </div>
+</div>
+
+<!-- ==================== 2. 囤货人分析 ==================== -->
+<div class="section" id="trader">
+    <div class="section-header">
+        <div class="section-num">2</div>
+        <h2>囤货人分析</h2>
+    </div>
+    <p class="section-desc">各位囤货人（产品经理）的交易表现对比。</p>
+
+    <div class="chart-row">
+        <div class="chart-box">
+            <h4>各囤货人交易规模（吨）</h4>
+            <div class="chart-container"><canvas id="traderTons"></canvas></div>
+        </div>
+        <div class="chart-box">
+            <h4>各囤货人总盈亏（元）</h4>
+            <div class="chart-container"><canvas id="traderPnl"></canvas></div>
+        </div>
+    </div>
+
+    <div class="box">
+        <h4>各囤货人交易明细</h4>
+        <table class="data-table">
+            <thead><tr><th>囤货人</th><th>订单数</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th><th>盈利率</th><th>空单补货亏损</th></tr></thead>
+            <tbody><tr>
+        <td><strong>刘俊晖</strong></td>
+        <td class="num">1054</td>
+        <td class="num">28,497</td>
+        <td class="num">82.05%</td>
+        <td class="num pnl-neg">-1,314,626</td>
+        <td class="num pnl-neg">-46.1</td>
+        <td class="num">43.74%</td>
+        <td class="num pnl-neg">-779,100</td>
+    </tr><tr>
+        <td><strong>张键洪</strong></td>
+        <td class="num">138</td>
+        <td class="num">3,236</td>
+        <td class="num">9.32%</td>
+        <td class="num pnl-neg">-29,613</td>
+        <td class="num pnl-neg">-9.2</td>
+        <td class="num">52.17%</td>
+        <td class="num pnl-neg">-191,549</td>
+    </tr><tr>
+        <td><strong>叶欣怡</strong></td>
+        <td class="num">40</td>
+        <td class="num">1,350</td>
+        <td class="num">3.89%</td>
+        <td class="num pnl-pos">72,304</td>
+        <td class="num pnl-pos">53.6</td>
+        <td class="num">95.00%</td>
+        <td class="num pnl-pos">779</td>
+    </tr><tr>
+        <td><strong>张子奇</strong></td>
+        <td class="num">23</td>
+        <td class="num">630</td>
+        <td class="num">1.81%</td>
+        <td class="num pnl-neg">-28,512</td>
+        <td class="num pnl-neg">-45.3</td>
+        <td class="num">30.43%</td>
+        <td class="num pnl-pos">844</td>
+    </tr><tr>
+        <td><strong>武丽萍</strong></td>
+        <td class="num">13</td>
+        <td class="num">384</td>
+        <td class="num">1.11%</td>
+        <td class="num pnl-pos">42,150</td>
+        <td class="num pnl-pos">109.8</td>
+        <td class="num">92.31%</td>
+        <td class="num pnl-pos">27,956</td>
+    </tr><tr>
+        <td><strong>汤英霞</strong></td>
+        <td class="num">11</td>
+        <td class="num">333</td>
+        <td class="num">0.96%</td>
+        <td class="num pnl-pos">30,032</td>
+        <td class="num pnl-pos">90.2</td>
+        <td class="num">100.00%</td>
+        <td class="num pnl-pos">-</td>
+    </tr><tr>
+        <td><strong>雷振</strong></td>
+        <td class="num">9</td>
+        <td class="num">300</td>
+        <td class="num">0.86%</td>
+        <td class="num pnl-pos">22,360</td>
+        <td class="num pnl-pos">74.5</td>
+        <td class="num">100.00%</td>
+        <td class="num pnl-pos">-</td>
+    </tr></tbody></table></div>
+
+    <div class="box">
+        <h4>各囤货人分年度对比</h4>
+        <table class="data-table">
+            <thead><tr><th>囤货人</th><th>年份</th><th>订单数</th><th>规模（吨）</th><th>总盈亏（元）</th><th>吨均盈亏</th><th>盈利率</th></tr></thead>
+            <tbody><tr>
+        <td><strong>刘俊晖</strong></td>
+        <td class="num">2025</td>
+        <td class="num">598</td>
+        <td class="num">15,897</td>
+        <td class="num pnl-neg">-372,230</td>
+        <td class="num pnl-neg">-23.4</td>
+        <td class="num">41.97%</td>
+    </tr><tr>
+        <td style="color:#94a3b8">—</td>
+        <td class="num">2026</td>
+        <td class="num">456</td>
+        <td class="num">12,600</td>
+        <td class="num pnl-neg">-942,396</td>
+        <td class="num pnl-neg">-74.8</td>
+        <td class="num">46.05%</td>
+    </tr><tr>
+        <td><strong>张键洪</strong></td>
+        <td class="num">2025</td>
+        <td class="num">88</td>
+        <td class="num">1,920</td>
+        <td class="num pnl-pos">135,421</td>
+        <td class="num pnl-pos">70.5</td>
+        <td class="num">57.95%</td>
+    </tr><tr>
+        <td style="color:#94a3b8">—</td>
+        <td class="num">2026</td>
+        <td class="num">50</td>
+        <td class="num">1,316</td>
+        <td class="num pnl-neg">-165,034</td>
+        <td class="num pnl-neg">-125.5</td>
+        <td class="num">42.00%</td>
+    </tr><tr>
+        <td><strong>叶欣怡</strong></td>
+        <td class="num">2025</td>
+        <td class="num">32</td>
+        <td class="num">1,110</td>
+        <td class="num pnl-pos">51,631</td>
+        <td class="num pnl-pos">46.5</td>
+        <td class="num">93.75%</td>
+    </tr><tr>
+        <td style="color:#94a3b8">—</td>
+        <td class="num">2026</td>
+        <td class="num">8</td>
+        <td class="num">240</td>
+        <td class="num pnl-pos">20,672</td>
+        <td class="num pnl-pos">86.1</td>
+        <td class="num">100.00%</td>
+    </tr><tr>
+        <td><strong>张子奇</strong></td>
+        <td class="num">2025</td>
+        <td class="num">19</td>
+        <td class="num">480</td>
+        <td class="num pnl-neg">-24,090</td>
+        <td class="num pnl-neg">-50.2</td>
+        <td class="num">26.32%</td>
+    </tr><tr>
+        <td style="color:#94a3b8">—</td>
+        <td class="num">2026</td>
+        <td class="num">4</td>
+        <td class="num">150</td>
+        <td class="num pnl-neg">-4,422</td>
+        <td class="num pnl-neg">-29.5</td>
+        <td class="num">50.00%</td>
+    </tr><tr>
+        <td><strong>武丽萍</strong></td>
+        <td class="num">2025</td>
+        <td class="num">10</td>
+        <td class="num">294</td>
+        <td class="num pnl-pos">12,893</td>
+        <td class="num pnl-pos">43.9</td>
+        <td class="num">90.00%</td>
+    </tr><tr>
+        <td style="color:#94a3b8">—</td>
+        <td class="num">2026</td>
+        <td class="num">3</td>
+        <td class="num">90</td>
+        <td class="num pnl-pos">29,257</td>
+        <td class="num pnl-pos">325.1</td>
+        <td class="num">100.00%</td>
+    </tr><tr>
+        <td><strong>汤英霞</strong></td>
+        <td class="num">2026</td>
+        <td class="num">11</td>
+        <td class="num">333</td>
+        <td class="num pnl-pos">30,032</td>
+        <td class="num pnl-pos">90.2</td>
+        <td class="num">100.00%</td>
+    </tr><tr>
+        <td><strong>雷振</strong></td>
+        <td class="num">2026</td>
+        <td class="num">9</td>
+        <td class="num">300</td>
+        <td class="num pnl-pos">22,360</td>
+        <td class="num pnl-pos">74.5</td>
+        <td class="num">100.00%</td>
+    </tr></tbody></table></div>
+
+    <div class="box">
+        <h4>各囤货人品类分布</h4>
+        <table class="data-table">
+            <thead><tr><th>囤货人</th><th>品类</th><th>订单数</th><th>规模（吨）</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+            <tbody><tr>
+        <td>刘俊晖</td>
+        <td>LLDPE</td>
+        <td class="num">1021</td>
+        <td class="num">27,426</td>
+        <td class="num pnl-neg">-1,372,260</td>
+        <td class="num pnl-neg">-50.0</td>
+    </tr><tr>
+        <td>刘俊晖</td>
+        <td>HDPE</td>
+        <td class="num">33</td>
+        <td class="num">1,071</td>
+        <td class="num pnl-pos">57,634</td>
+        <td class="num pnl-pos">53.8</td>
+    </tr><tr>
+        <td>张键洪</td>
+        <td>MLLDPE</td>
+        <td class="num">138</td>
+        <td class="num">3,236</td>
+        <td class="num pnl-neg">-29,613</td>
+        <td class="num pnl-neg">-9.2</td>
+    </tr><tr>
+        <td>叶欣怡</td>
+        <td>HDPE</td>
+        <td class="num">24</td>
+        <td class="num">840</td>
+        <td class="num pnl-pos">47,278</td>
+        <td class="num pnl-pos">56.3</td>
+    </tr><tr>
+        <td>叶欣怡</td>
+        <td>PPHM</td>
+        <td class="num">10</td>
+        <td class="num">330</td>
+        <td class="num pnl-pos">18,179</td>
+        <td class="num pnl-pos">55.1</td>
+    </tr><tr>
+        <td>叶欣怡</td>
+        <td>ABS</td>
+        <td class="num">6</td>
+        <td class="num">180</td>
+        <td class="num pnl-pos">6,847</td>
+        <td class="num pnl-pos">38.0</td>
+    </tr><tr>
+        <td>张子奇</td>
+        <td>PPB</td>
+        <td class="num">17</td>
+        <td class="num">420</td>
+        <td class="num pnl-neg">-26,276</td>
+        <td class="num pnl-neg">-62.6</td>
+    </tr><tr>
+        <td>张子奇</td>
+        <td>PPHM</td>
+        <td class="num">6</td>
+        <td class="num">210</td>
+        <td class="num pnl-neg">-2,235</td>
+        <td class="num pnl-neg">-10.6</td>
+    </tr><tr>
+        <td>武丽萍</td>
+        <td>LLDPE</td>
+        <td class="num">12</td>
+        <td class="num">354</td>
+        <td class="num pnl-pos">41,892</td>
+        <td class="num pnl-pos">118.3</td>
+    </tr><tr>
+        <td>武丽萍</td>
+        <td>PPHM</td>
+        <td class="num">1</td>
+        <td class="num">30</td>
+        <td class="num pnl-pos">257</td>
+        <td class="num pnl-pos">8.6</td>
+    </tr><tr>
+        <td>汤英霞</td>
+        <td>ABS</td>
+        <td class="num">6</td>
+        <td class="num">180</td>
+        <td class="num pnl-pos">15,116</td>
+        <td class="num pnl-pos">84.0</td>
+    </tr><tr>
+        <td>汤英霞</td>
+        <td>PPHM</td>
+        <td class="num">5</td>
+        <td class="num">153</td>
+        <td class="num pnl-pos">14,916</td>
+        <td class="num pnl-pos">97.5</td>
+    </tr><tr>
+        <td>雷振</td>
+        <td>HDPE</td>
+        <td class="num">9</td>
+        <td class="num">300</td>
+        <td class="num pnl-pos">22,360</td>
+        <td class="num pnl-pos">74.5</td>
+    </tr></tbody></table></div>
+
+    <div class="insight-box">
+        <p><strong>囤货人小结：</strong></p>
+        <p>1. <strong>刘俊晖</strong>是最大囤货人（28,497吨，占82.05%），吨均亏损46.1元/吨。</p><p>2. 盈利囤货人：叶欣怡（1,350吨，吨均+53.6元）、武丽萍（384吨，吨均+109.8元）、汤英霞（333吨，吨均+90.2元）、雷振（300吨，吨均+74.5元）。</p><p>3. 其他亏损囤货人：张键洪（吨均-9.2元）、张子奇（吨均-45.3元）。</p>
+    </div>
+</div>
+
+<div class="section" id="yearly">
+    <div class="section-header">
+        <div class="section-num">3</div>
+        <h2>年度对比</h2>
+    </div>
+    <p class="section-desc">2025全年与2026年1-4月的交易对比，观察趋势变化。</p>
+
+    <div class="chart-row">
+        <div class="box">
+            <h4>年度核心指标对比</h4>
+            <table class="data-table">
+                <thead><tr><th>指标</th><th>2025年全年</th><th>2026年1-4月</th></tr></thead>
+                <tbody>
+                <tr><td>订单数</td><td class="num">747</td><td class="num">541</td></tr>
+                <tr><td>交易规模（吨）</td><td class="num">19,701</td><td class="num">15,028</td></tr>
+                <tr><td>总盈亏（元）</td><td class="num pnl-neg">-196,376</td><td class="num pnl-neg">-1,009,530</td></tr>
+                <tr><td>吨均盈亏（元/吨）</td><td class="num pnl-neg">-10.0</td><td class="num pnl-neg">-67.2</td></tr>
+                <tr><td>盈利行项目占比</td><td class="num">46.32%</td><td class="num">48.80%</td></tr>
+                <tr><td>月均规模（吨/月）</td><td class="num">1,642</td><td class="num">3,757</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="chart-box">
+            <h4>25年vs26年同期月度规模对比（吨）</h4>
+            <div class="chart-container"><canvas id="yearCompTons"></canvas></div>
+        </div>
+    </div>
+    <div class="chart-row">
+        <div class="chart-box">
+            <h4>25年vs26年同期月度盈亏对比（元）</h4>
+            <div class="chart-container"><canvas id="yearCompPnl"></canvas></div>
+        </div>
+        <div class="chart-box">
+            <h4>25年vs26年同期月度吨均盈亏（元/吨）</h4>
+            <div class="chart-container"><canvas id="yearCompAvg"></canvas></div>
+        </div>
+    </div>
+
+    <div class="insight-box insight-warn">
+        <p><strong>2026年亏损显著加剧：</strong>2026年仅1-4月已亏损 <strong>1,009,530</strong> 元，已超过2025全年亏损额（196,376元）的 <strong>514.08%</strong>。月均交易规模从25年的 1,642 吨/月增长至26年的 3,757 吨/月，吨均亏损从 10.0 元/吨扩大至 67.2 元/吨。</p>
+    </div>
+</div>
+
+<div class="section" id="monthly">
+    <div class="section-header">
+        <div class="section-num">4</div>
+        <h2>月度走势</h2>
+    </div>
+    <p class="section-desc">各月交易规模、盈亏金额及吨均盈亏的变化趋势。</p>
+
+    <div class="full-chart">
+        <h4>月度交易规模与订单数</h4>
+        <div class="chart-container-wide"><canvas id="monthlyTons"></canvas></div>
+    </div>
+    <div class="full-chart">
+        <h4>月度盈亏金额与吨均盈亏</h4>
+        <div class="chart-container-wide"><canvas id="monthlyPnl"></canvas></div>
+    </div>
+
+    <div class="box">
+        <h4>月度明细数据</h4>
+        <table class="data-table">
+            <thead><tr><th>年月</th><th>订单数</th><th>规模（吨）</th><th>总盈亏（元）</th><th>吨均盈亏</th><th>盈利笔数</th><th>亏损笔数</th><th>盈利率</th></tr></thead>
+            <tbody>
+<tr>
+        <td>2025-01</td>
+        <td class="num">23</td>
+        <td class="num">570</td>
+        <td class="num pnl-pos">4,518</td>
+        <td class="num pnl-pos">7.9</td>
+        <td class="num">11</td>
+        <td class="num">12</td>
+        <td class="num">47.83%</td>
+    </tr><tr>
+        <td>2025-02</td>
+        <td class="num">25</td>
+        <td class="num">516</td>
+        <td class="num pnl-pos">27,288</td>
+        <td class="num pnl-pos">52.9</td>
+        <td class="num">11</td>
+        <td class="num">14</td>
+        <td class="num">44.00%</td>
+    </tr><tr>
+        <td>2025-03</td>
+        <td class="num">21</td>
+        <td class="num">498</td>
+        <td class="num pnl-pos">10,144</td>
+        <td class="num pnl-pos">20.4</td>
+        <td class="num">11</td>
+        <td class="num">10</td>
+        <td class="num">52.38%</td>
+    </tr><tr>
+        <td>2025-04</td>
+        <td class="num">28</td>
+        <td class="num">512</td>
+        <td class="num pnl-pos">58,192</td>
+        <td class="num pnl-pos">113.5</td>
+        <td class="num">18</td>
+        <td class="num">10</td>
+        <td class="num">64.29%</td>
+    </tr><tr>
+        <td>2025-05</td>
+        <td class="num">46</td>
+        <td class="num">1,290</td>
+        <td class="num pnl-neg">-60,789</td>
+        <td class="num pnl-neg">-47.1</td>
+        <td class="num">13</td>
+        <td class="num">33</td>
+        <td class="num">28.26%</td>
+    </tr><tr>
+        <td>2025-06</td>
+        <td class="num">52</td>
+        <td class="num">1,216</td>
+        <td class="num pnl-pos">10,174</td>
+        <td class="num pnl-pos">8.4</td>
+        <td class="num">30</td>
+        <td class="num">22</td>
+        <td class="num">57.69%</td>
+    </tr><tr>
+        <td>2025-07</td>
+        <td class="num">88</td>
+        <td class="num">2,328</td>
+        <td class="num pnl-neg">-37,017</td>
+        <td class="num pnl-neg">-15.9</td>
+        <td class="num">36</td>
+        <td class="num">52</td>
+        <td class="num">40.91%</td>
+    </tr><tr>
+        <td>2025-08</td>
+        <td class="num">62</td>
+        <td class="num">1,485</td>
+        <td class="num pnl-pos">3,356</td>
+        <td class="num pnl-pos">2.3</td>
+        <td class="num">30</td>
+        <td class="num">32</td>
+        <td class="num">48.39%</td>
+    </tr><tr>
+        <td>2025-09</td>
+        <td class="num">58</td>
+        <td class="num">1,509</td>
+        <td class="num pnl-pos">43,098</td>
+        <td class="num pnl-pos">28.6</td>
+        <td class="num">38</td>
+        <td class="num">20</td>
+        <td class="num">65.52%</td>
+    </tr><tr>
+        <td>2025-10</td>
+        <td class="num">68</td>
+        <td class="num">1,731</td>
+        <td class="num pnl-neg">-21,122</td>
+        <td class="num pnl-neg">-12.2</td>
+        <td class="num">26</td>
+        <td class="num">42</td>
+        <td class="num">38.24%</td>
+    </tr><tr>
+        <td>2025-11</td>
+        <td class="num">135</td>
+        <td class="num">3,886</td>
+        <td class="num pnl-pos">21,032</td>
+        <td class="num pnl-pos">5.4</td>
+        <td class="num">66</td>
+        <td class="num">69</td>
+        <td class="num">48.89%</td>
+    </tr><tr>
+        <td>2025-12</td>
+        <td class="num">141</td>
+        <td class="num">4,159</td>
+        <td class="num pnl-neg">-255,250</td>
+        <td class="num pnl-neg">-61.4</td>
+        <td class="num">56</td>
+        <td class="num">85</td>
+        <td class="num">39.72%</td>
+    </tr><tr>
+        <td>2026-01</td>
+        <td class="num">141</td>
+        <td class="num">4,014</td>
+        <td class="num pnl-neg">-250,194</td>
+        <td class="num pnl-neg">-62.3</td>
+        <td class="num">63</td>
+        <td class="num">78</td>
+        <td class="num">44.68%</td>
+    </tr><tr>
+        <td>2026-02</td>
+        <td class="num">66</td>
+        <td class="num">1,946</td>
+        <td class="num pnl-neg">-18,223</td>
+        <td class="num pnl-neg">-9.4</td>
+        <td class="num">31</td>
+        <td class="num">35</td>
+        <td class="num">46.97%</td>
+    </tr><tr>
+        <td>2026-03</td>
+        <td class="num">87</td>
+        <td class="num">2,586</td>
+        <td class="num pnl-neg">-585,693</td>
+        <td class="num pnl-neg">-226.5</td>
+        <td class="num">41</td>
+        <td class="num">46</td>
+        <td class="num">47.13%</td>
+    </tr><tr>
+        <td>2026-04</td>
+        <td class="num">109</td>
+        <td class="num">2,776</td>
+        <td class="num pnl-neg">-228,221</td>
+        <td class="num pnl-neg">-82.2</td>
+        <td class="num">48</td>
+        <td class="num">61</td>
+        <td class="num">44.04%</td>
+    </tr><tr>
+        <td>2026-05</td>
+        <td class="num">138</td>
+        <td class="num">3,706</td>
+        <td class="num pnl-pos">72,802</td>
+        <td class="num pnl-pos">19.6</td>
+        <td class="num">81</td>
+        <td class="num">57</td>
+        <td class="num">58.70%</td>
+    </tr></tbody></table></div>
+
+    <div class="insight-box">
+        <p><strong>月度走势观察：</strong></p>
+        <p>1. 2025年初规模较小，5月起规模逐步扩大，盈亏波动加大。</p>
+        <p>2. 2025年12月至2026年1月规模跳升、亏损集中爆发，是亏损最严重的时段。</p>
+        <p>3. 2026年整体维持高规模运行，但各月均为亏损状态，且亏损幅度普遍较大。</p>
+    </div>
+</div>
+
+<div class="section" id="product">
+    <div class="section-header">
+        <div class="section-num">5</div>
+        <h2>品类与牌号分析</h2>
+    </div>
+    <p class="section-desc">交易涉及的品类、细分二级品类、以及具体牌号的结构分析。</p>
+<div class="chart-row">
+    <div class="box">
+        <h4>品类分布</h4>
+        <table class="data-table">
+            <thead><tr><th>品类</th><th>订单数</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+            <tbody><tr>
+        <td><strong>LLDPE</strong></td>
+        <td class="num">1033</td>
+        <td class="num">27,780</td>
+        <td class="num">79.99%</td>
+        <td class="num pnl-neg">-1,330,368</td>
+        <td class="num pnl-neg">-47.9</td>
+    </tr><tr>
+        <td><strong>MLLDPE</strong></td>
+        <td class="num">138</td>
+        <td class="num">3,236</td>
+        <td class="num">9.32%</td>
+        <td class="num pnl-neg">-29,613</td>
+        <td class="num pnl-neg">-9.2</td>
+    </tr><tr>
+        <td><strong>HDPE</strong></td>
+        <td class="num">66</td>
+        <td class="num">2,211</td>
+        <td class="num">6.37%</td>
+        <td class="num pnl-pos">127,271</td>
+        <td class="num pnl-pos">57.6</td>
+    </tr><tr>
+        <td><strong>PPHM</strong></td>
+        <td class="num">22</td>
+        <td class="num">723</td>
+        <td class="num">2.08%</td>
+        <td class="num pnl-pos">31,116</td>
+        <td class="num pnl-pos">43.0</td>
+    </tr><tr>
+        <td><strong>PPB</strong></td>
+        <td class="num">17</td>
+        <td class="num">420</td>
+        <td class="num">1.21%</td>
+        <td class="num pnl-neg">-26,276</td>
+        <td class="num pnl-neg">-62.6</td>
+    </tr><tr>
+        <td><strong>ABS</strong></td>
+        <td class="num">12</td>
+        <td class="num">360</td>
+        <td class="num">1.04%</td>
+        <td class="num pnl-pos">21,964</td>
+        <td class="num pnl-pos">61.0</td>
+    </tr></tbody></table></div>
+    <div class="box">
+        <h4>细分二级品类分布</h4>
+        <table class="data-table">
+            <thead><tr><th>细分品类</th><th>订单数</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+            <tbody><tr>
+        <td>LLDPE膜料</td>
+        <td class="num">1025</td>
+        <td class="num">27,540</td>
+        <td class="num">79.30%</td>
+        <td class="num pnl-neg">-1,365,937</td>
+        <td class="num pnl-neg">-49.6</td>
+    </tr><tr>
+        <td>MLLDPE</td>
+        <td class="num">138</td>
+        <td class="num">3,236</td>
+        <td class="num">9.32%</td>
+        <td class="num pnl-neg">-29,613</td>
+        <td class="num pnl-neg">-9.2</td>
+    </tr><tr>
+        <td>HDPE注塑料</td>
+        <td class="num">41</td>
+        <td class="num">1,410</td>
+        <td class="num">4.06%</td>
+        <td class="num pnl-pos">94,280</td>
+        <td class="num pnl-pos">66.9</td>
+    </tr><tr>
+        <td>PPHM拉丝料</td>
+        <td class="num">19</td>
+        <td class="num">633</td>
+        <td class="num">1.82%</td>
+        <td class="num pnl-pos">19,330</td>
+        <td class="num pnl-pos">30.5</td>
+    </tr><tr>
+        <td>HDPE管材料</td>
+        <td class="num">14</td>
+        <td class="num">480</td>
+        <td class="num">1.38%</td>
+        <td class="num pnl-pos">22,315</td>
+        <td class="num pnl-pos">46.5</td>
+    </tr><tr>
+        <td>PPB注塑料</td>
+        <td class="num">17</td>
+        <td class="num">420</td>
+        <td class="num">1.21%</td>
+        <td class="num pnl-neg">-26,276</td>
+        <td class="num pnl-neg">-62.6</td>
+    </tr><tr>
+        <td>ABS</td>
+        <td class="num">12</td>
+        <td class="num">360</td>
+        <td class="num">1.04%</td>
+        <td class="num pnl-pos">21,964</td>
+        <td class="num pnl-pos">61.0</td>
+    </tr><tr>
+        <td>LLDPE注塑料</td>
+        <td class="num">8</td>
+        <td class="num">240</td>
+        <td class="num">0.69%</td>
+        <td class="num pnl-pos">35,569</td>
+        <td class="num pnl-pos">148.2</td>
+    </tr><tr>
+        <td>HDPE膜料</td>
+        <td class="num">7</td>
+        <td class="num">201</td>
+        <td class="num">0.58%</td>
+        <td class="num pnl-pos">7,503</td>
+        <td class="num pnl-pos">37.3</td>
+    </tr><tr>
+        <td>HDPE拉丝料</td>
+        <td class="num">4</td>
+        <td class="num">120</td>
+        <td class="num">0.35%</td>
+        <td class="num pnl-pos">3,174</td>
+        <td class="num pnl-pos">26.4</td>
+    </tr><tr>
+        <td>PPHM注塑料</td>
+        <td class="num">2</td>
+        <td class="num">60</td>
+        <td class="num">0.17%</td>
+        <td class="num pnl-pos">8,865</td>
+        <td class="num pnl-pos">147.7</td>
+    </tr><tr>
+        <td>PPHM纤维料</td>
+        <td class="num">1</td>
+        <td class="num">30</td>
+        <td class="num">0.09%</td>
+        <td class="num pnl-pos">2,922</td>
+        <td class="num pnl-pos">97.4</td>
+    </tr></tbody></table></div></div><div class="box">
+    <h4>具体牌号交易明细（按规模排序）</h4>
+    <table class="data-table">
+        <thead><tr><th>#</th><th>生产商</th><th>牌号</th><th>订单数</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+        <tbody><tr>
+        <td class="num">1</td>
+        <td>辽宁宝来</td>
+        <td><strong>DFDA-7042</strong></td>
+        <td class="num">699</td>
+        <td class="num">18,225</td>
+        <td class="num">52.48%</td>
+        <td class="num pnl-neg">-843,768</td>
+        <td class="num pnl-neg">-46.3</td>
+    </tr><tr>
+        <td class="num">2</td>
+        <td>广西石化</td>
+        <td><strong>DFDA-7042N</strong></td>
+        <td class="num">198</td>
+        <td class="num">5,889</td>
+        <td class="num">16.96%</td>
+        <td class="num pnl-neg">-527,311</td>
+        <td class="num pnl-neg">-89.5</td>
+    </tr><tr>
+        <td class="num">3</td>
+        <td>广东石化</td>
+        <td><strong>HPR1018HA</strong></td>
+        <td class="num">89</td>
+        <td class="num">2,156</td>
+        <td class="num">6.21%</td>
+        <td class="num pnl-neg">-113,001</td>
+        <td class="num pnl-neg">-52.4</td>
+    </tr><tr>
+        <td class="num">4</td>
+        <td>辽宁宝来</td>
+        <td><strong>DFDC-7050</strong></td>
+        <td class="num">65</td>
+        <td class="num">1,701</td>
+        <td class="num">4.90%</td>
+        <td class="num pnl-neg">-75,556</td>
+        <td class="num pnl-neg">-44.4</td>
+    </tr><tr>
+        <td class="num">5</td>
+        <td>中海壳牌</td>
+        <td><strong>DFDA-7042</strong></td>
+        <td class="num">53</td>
+        <td class="num">1,431</td>
+        <td class="num">4.12%</td>
+        <td class="num pnl-pos">52,162</td>
+        <td class="num pnl-pos">36.5</td>
+    </tr><tr>
+        <td class="num">6</td>
+        <td>广东石化</td>
+        <td><strong>HPR3518CB</strong></td>
+        <td class="num">41</td>
+        <td class="num">1,020</td>
+        <td class="num">2.94%</td>
+        <td class="num pnl-pos">35,584</td>
+        <td class="num pnl-pos">34.9</td>
+    </tr><tr>
+        <td class="num">7</td>
+        <td>广东石化</td>
+        <td><strong>7260协议料</strong></td>
+        <td class="num">16</td>
+        <td class="num">630</td>
+        <td class="num">1.81%</td>
+        <td class="num pnl-pos">35,137</td>
+        <td class="num pnl-pos">55.8</td>
+    </tr><tr>
+        <td class="num">8</td>
+        <td>广西石化</td>
+        <td><strong>T0032(L5E89)</strong></td>
+        <td class="num">18</td>
+        <td class="num">603</td>
+        <td class="num">1.74%</td>
+        <td class="num pnl-pos">18,942</td>
+        <td class="num pnl-pos">31.4</td>
+    </tr><tr>
+        <td class="num">9</td>
+        <td>广东石化</td>
+        <td><strong>K8003</strong></td>
+        <td class="num">17</td>
+        <td class="num">420</td>
+        <td class="num">1.21%</td>
+        <td class="num pnl-neg">-26,276</td>
+        <td class="num pnl-neg">-62.6</td>
+    </tr><tr>
+        <td class="num">10</td>
+        <td>广东石化</td>
+        <td><strong>23050G</strong></td>
+        <td class="num">11</td>
+        <td class="num">360</td>
+        <td class="num">1.04%</td>
+        <td class="num pnl-pos">16,885</td>
+        <td class="num pnl-pos">46.9</td>
+    </tr><tr>
+        <td class="num">11</td>
+        <td>广西石化</td>
+        <td><strong>GC7260协议品</strong></td>
+        <td class="num">10</td>
+        <td class="num">360</td>
+        <td class="num">1.04%</td>
+        <td class="num pnl-pos">24,653</td>
+        <td class="num pnl-pos">68.5</td>
+    </tr><tr>
+        <td class="num">12</td>
+        <td>吉林石化（揭阳）</td>
+        <td><strong>0215A协议料</strong></td>
+        <td class="num">10</td>
+        <td class="num">300</td>
+        <td class="num">0.86%</td>
+        <td class="num pnl-pos">20,207</td>
+        <td class="num pnl-pos">67.4</td>
+    </tr><tr>
+        <td class="num">13</td>
+        <td>广东石化</td>
+        <td><strong>8320</strong></td>
+        <td class="num">8</td>
+        <td class="num">240</td>
+        <td class="num">0.69%</td>
+        <td class="num pnl-pos">35,569</td>
+        <td class="num pnl-pos">148.2</td>
+    </tr><tr>
+        <td class="num">14</td>
+        <td>广东石化</td>
+        <td><strong>HSGC7260G</strong></td>
+        <td class="num">8</td>
+        <td class="num">240</td>
+        <td class="num">0.69%</td>
+        <td class="num pnl-pos">21,799</td>
+        <td class="num pnl-pos">90.8</td>
+    </tr><tr>
+        <td class="num">15</td>
+        <td>广西石化</td>
+        <td><strong>7042N协议料</strong></td>
+        <td class="num">8</td>
+        <td class="num">230</td>
+        <td class="num">0.66%</td>
+        <td class="num pnl-pos">26,279</td>
+        <td class="num pnl-pos">114.5</td>
+    </tr></tbody></table></div>
+    <div class="insight-box">
+        <p><strong>品类与牌号小结：</strong></p>
+        <p>1. 交易品类以LLDPE为主（占79.99%），共涉及 6 个品类。</p>
+        <p>2. 三大核心牌号：辽宁宝来DFDA-7042（18,225吨）、广西石化DFDA-7042N（5,889吨）、广东石化HPR1018HA（2,156吨），合计占总规模的 75.64%。</p>
+    </div>
+</div>
+
+<div class="section" id="producer">
+    <div class="section-header">
+        <div class="section-num">6</div>
+        <h2>生产商分析</h2>
+    </div>
+    <p class="section-desc">各生产商（石化厂）货源的交易表现对比。</p>
+
+    <div class="chart-row">
+        <div class="chart-box">
+            <h4>各生产商交易规模（吨）</h4>
+            <div class="chart-container"><canvas id="prodTons"></canvas></div>
+        </div>
+        <div class="chart-box">
+            <h4>各生产商总盈亏（元）</h4>
+            <div class="chart-container"><canvas id="prodPnl"></canvas></div>
+        </div>
+    </div>
+
+    <div class="box">
+        <h4>各生产商交易明细</h4>
+        <table class="data-table">
+            <thead><tr><th>生产商</th><th>订单数</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+            <tbody><tr>
+        <td><strong>辽宁宝来</strong></td>
+        <td class="num">764</td>
+        <td class="num">19,926</td>
+        <td class="num">57.37%</td>
+        <td class="num pnl-neg">-919,324</td>
+        <td class="num pnl-neg">-46.1</td>
+    </tr><tr>
+        <td><strong>广西石化</strong></td>
+        <td class="num">245</td>
+        <td class="num">7,412</td>
+        <td class="num">21.34%</td>
+        <td class="num pnl-neg">-438,928</td>
+        <td class="num pnl-neg">-59.2</td>
+    </tr><tr>
+        <td><strong>广东石化</strong></td>
+        <td class="num">208</td>
+        <td class="num">5,430</td>
+        <td class="num">15.64%</td>
+        <td class="num pnl-pos">68,321</td>
+        <td class="num pnl-pos">12.6</td>
+    </tr><tr>
+        <td><strong>中海壳牌</strong></td>
+        <td class="num">53</td>
+        <td class="num">1,431</td>
+        <td class="num">4.12%</td>
+        <td class="num pnl-pos">52,162</td>
+        <td class="num pnl-pos">36.5</td>
+    </tr><tr>
+        <td><strong>吉林石化（揭阳）</strong></td>
+        <td class="num">10</td>
+        <td class="num">300</td>
+        <td class="num">0.86%</td>
+        <td class="num pnl-pos">20,207</td>
+        <td class="num pnl-pos">67.4</td>
+    </tr><tr>
+        <td><strong>中化泉州</strong></td>
+        <td class="num">3</td>
+        <td class="num">81</td>
+        <td class="num">0.23%</td>
+        <td class="num pnl-neg">-341</td>
+        <td class="num pnl-neg">-4.2</td>
+    </tr><tr>
+        <td><strong>大庆炼化</strong></td>
+        <td class="num">2</td>
+        <td class="num">60</td>
+        <td class="num">0.17%</td>
+        <td class="num pnl-pos">8,865</td>
+        <td class="num pnl-pos">147.7</td>
+    </tr><tr>
+        <td><strong>吉林石化</strong></td>
+        <td class="num">2</td>
+        <td class="num">60</td>
+        <td class="num">0.17%</td>
+        <td class="num pnl-pos">1,757</td>
+        <td class="num pnl-pos">29.3</td>
+    </tr><tr>
+        <td><strong>大庆石化</strong></td>
+        <td class="num">1</td>
+        <td class="num">30</td>
+        <td class="num">0.09%</td>
+        <td class="num pnl-pos">1,376</td>
+        <td class="num pnl-pos">45.9</td>
+    </tr></tbody></table></div>
+
+    <div class="insight-box">
+        <p><strong>生产商小结：</strong></p>
+        <p>1. 辽宁宝来是最大货源（764笔，19,926吨，占57.37%），吨均亏损46.1元/吨。</p><p>2. 广西石化为第二大货源（245笔，7,412吨），吨均亏损59.2元/吨。</p><p>3. 盈利生产商：广东石化（吨均+12.6元）、中海壳牌（吨均+36.5元）、吉林石化（揭阳）（吨均+67.4元）。</p>
+    </div>
+</div>
+
+<div class="section" id="customer">
+    <div class="section-header">
+        <div class="section-num">7</div>
+        <h2>客户分析</h2>
+    </div>
+    <p class="section-desc">资源单货物的下游客户分布与各客户的盈亏表现。</p>
+
+    <div class="box">
+        <h4>TOP客户明细（按规模排序，前15名）</h4>
+        <table class="data-table">
+            <thead><tr><th>#</th><th>客户名称</th><th>订单数</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+            <tbody><tr>
+        <td class="num">1</td>
+        <td>福建金塑宝供应链有限公司</td>
+        <td class="num">70</td>
+        <td class="num">2,256</td>
+        <td class="num">6.50%</td>
+        <td class="num pnl-neg">-33,537</td>
+        <td class="num pnl-neg">-14.9</td>
+    </tr><tr>
+        <td class="num">2</td>
+        <td>中山市嘉德龙厨房电器有限公司</td>
+        <td class="num">64</td>
+        <td class="num">1,752</td>
+        <td class="num">5.04%</td>
+        <td class="num pnl-neg">-185,207</td>
+        <td class="num pnl-neg">-105.7</td>
+    </tr><tr>
+        <td class="num">3</td>
+        <td>广东常盛新材料有限公司</td>
+        <td class="num">39</td>
+        <td class="num">1,056</td>
+        <td class="num">3.04%</td>
+        <td class="num pnl-neg">-13,913</td>
+        <td class="num pnl-neg">-13.2</td>
+    </tr><tr>
+        <td class="num">4</td>
+        <td>东莞市赛卓新材料有限公司</td>
+        <td class="num">32</td>
+        <td class="num">891</td>
+        <td class="num">2.57%</td>
+        <td class="num pnl-neg">-490</td>
+        <td class="num pnl-neg">-0.6</td>
+    </tr><tr>
+        <td class="num">5</td>
+        <td>广东杰盛塑胶有限公司</td>
+        <td class="num">24</td>
+        <td class="num">675</td>
+        <td class="num">1.94%</td>
+        <td class="num pnl-neg">-185,876</td>
+        <td class="num pnl-neg">-275.4</td>
+    </tr><tr>
+        <td class="num">6</td>
+        <td>佛山市高明区新裕丰塑业有限公司</td>
+        <td class="num">20</td>
+        <td class="num">630</td>
+        <td class="num">1.81%</td>
+        <td class="num pnl-neg">-72,936</td>
+        <td class="num pnl-neg">-115.8</td>
+    </tr><tr>
+        <td class="num">7</td>
+        <td>佛山市雁元绿田塑料管有限公司</td>
+        <td class="num">15</td>
+        <td class="num">570</td>
+        <td class="num">1.64%</td>
+        <td class="num pnl-pos">21,671</td>
+        <td class="num pnl-pos">38.0</td>
+    </tr><tr>
+        <td class="num">8</td>
+        <td>广州市志创包装材料有限公司</td>
+        <td class="num">18</td>
+        <td class="num">534</td>
+        <td class="num">1.54%</td>
+        <td class="num pnl-neg">-35,169</td>
+        <td class="num pnl-neg">-65.9</td>
+    </tr><tr>
+        <td class="num">9</td>
+        <td>广州添悦包装有限公司</td>
+        <td class="num">13</td>
+        <td class="num">501</td>
+        <td class="num">1.44%</td>
+        <td class="num pnl-pos">4,206</td>
+        <td class="num pnl-pos">8.4</td>
+    </tr><tr>
+        <td class="num">10</td>
+        <td>利迅包装制品(东莞)有限公司</td>
+        <td class="num">16</td>
+        <td class="num">444</td>
+        <td class="num">1.28%</td>
+        <td class="num pnl-neg">-13,678</td>
+        <td class="num pnl-neg">-30.8</td>
+    </tr><tr>
+        <td class="num">11</td>
+        <td>广东远华新材料股份有限公司</td>
+        <td class="num">16</td>
+        <td class="num">432</td>
+        <td class="num">1.24%</td>
+        <td class="num pnl-pos">7,279</td>
+        <td class="num pnl-pos">16.9</td>
+    </tr><tr>
+        <td class="num">12</td>
+        <td>广州塑信供应链有限公司</td>
+        <td class="num">15</td>
+        <td class="num">414</td>
+        <td class="num">1.19%</td>
+        <td class="num pnl-pos">293</td>
+        <td class="num pnl-pos">0.7</td>
+    </tr><tr>
+        <td class="num">13</td>
+        <td>广东天元实业集团股份有限公司</td>
+        <td class="num">11</td>
+        <td class="num">390</td>
+        <td class="num">1.12%</td>
+        <td class="num pnl-pos">2,824</td>
+        <td class="num pnl-pos">7.2</td>
+    </tr><tr>
+        <td class="num">14</td>
+        <td>广州市鸿华塑料制品有限公司</td>
+        <td class="num">16</td>
+        <td class="num">384</td>
+        <td class="num">1.11%</td>
+        <td class="num pnl-pos">45,415</td>
+        <td class="num pnl-pos">118.3</td>
+    </tr><tr>
+        <td class="num">15</td>
+        <td>深圳市安和达塑胶制品有限公司</td>
+        <td class="num">11</td>
+        <td class="num">330</td>
+        <td class="num">0.95%</td>
+        <td class="num pnl-pos">11,887</td>
+        <td class="num pnl-pos">36.0</td>
+    </tr></tbody></table></div>
+    <div class="stat-summary">
+        <div class="stat-card">
+            <div class="stat-value">417</div>
+            <div class="stat-label">客户数量</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">19.09%</div>
+            <div class="stat-label">TOP5客户规模占比</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">26.80%</div>
+            <div class="stat-label">TOP10客户规模占比</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">184 / 233</div>
+            <div class="stat-label">盈利/亏损客户数</div>
+        </div>
+    </div>
+
+    <div class="insight-box">
+        <p><strong>客户分析小结：</strong></p>
+        <p>1. 共涉及 <strong>417</strong> 个客户，TOP5客户占总规模 19.09%，TOP10占 26.80%。</p>
+        <p>2. 客户维度盈亏差异大，盈利客户 184 个、亏损客户 233 个，盈亏更多取决于囤货时点的行情波动。</p>
+    </div>
+</div>
+
+<div class="section" id="channel">
+    <div class="section-header">
+        <div class="section-num">8</div>
+        <h2>渠道与金融类型</h2>
+    </div>
+    <p class="section-desc">分析交易的销售大区分布与金融账期类型结构。</p>
+
+    <div class="chart-row">
+        <div class="box">
+            <h4>销售大区分布</h4>
+            <table class="data-table">
+                <thead><tr><th>大区</th><th>订单数</th><th>笔数占比</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+                <tbody><tr>
+        <td><strong>快塑华南</strong></td>
+        <td class="num">997</td>
+        <td class="num">77.41%</td>
+        <td class="num">26,277</td>
+        <td class="num">75.66%</td>
+        <td class="num pnl-neg">-864,285</td>
+        <td class="num pnl-neg">-32.9</td>
+    </tr><tr>
+        <td><strong>CPG</strong></td>
+        <td class="num">290</td>
+        <td class="num">22.52%</td>
+        <td class="num">8,425</td>
+        <td class="num">24.26%</td>
+        <td class="num pnl-neg">-337,475</td>
+        <td class="num pnl-neg">-40.1</td>
+    </tr><tr>
+        <td><strong>快塑华东</strong></td>
+        <td class="num">1</td>
+        <td class="num">0.08%</td>
+        <td class="num">27</td>
+        <td class="num">0.08%</td>
+        <td class="num pnl-neg">-4,146</td>
+        <td class="num pnl-neg">-153.6</td>
+    </tr></tbody></table></div>
+        <div class="box">
+            <h4>金融类型分布</h4>
+            <table class="data-table">
+                <thead><tr><th>金融类型</th><th>订单数</th><th>笔数占比</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+                <tbody><tr>
+        <td>先款</td>
+        <td class="num">701</td>
+        <td class="num">54.43%</td>
+        <td class="num">17,938</td>
+        <td class="num">51.65%</td>
+        <td class="num pnl-neg">-919,170</td>
+        <td class="num pnl-neg">-51.2</td>
+    </tr><tr>
+        <td>当天回款</td>
+        <td class="num">12</td>
+        <td class="num">0.93%</td>
+        <td class="num">333</td>
+        <td class="num">0.96%</td>
+        <td class="num pnl-neg">-2,591</td>
+        <td class="num pnl-neg">-7.8</td>
+    </tr><tr>
+        <td>1-7天</td>
+        <td class="num">313</td>
+        <td class="num">24.30%</td>
+        <td class="num">9,135</td>
+        <td class="num">26.30%</td>
+        <td class="num pnl-neg">-137,079</td>
+        <td class="num pnl-neg">-15.0</td>
+    </tr><tr>
+        <td>8-15天</td>
+        <td class="num">173</td>
+        <td class="num">13.43%</td>
+        <td class="num">4,960</td>
+        <td class="num">14.28%</td>
+        <td class="num pnl-neg">-181,513</td>
+        <td class="num pnl-neg">-36.6</td>
+    </tr><tr>
+        <td>16-30天</td>
+        <td class="num">34</td>
+        <td class="num">2.64%</td>
+        <td class="num">898</td>
+        <td class="num">2.59%</td>
+        <td class="num pnl-pos">4,095</td>
+        <td class="num pnl-pos">4.6</td>
+    </tr><tr>
+        <td>31-60天</td>
+        <td class="num">25</td>
+        <td class="num">1.94%</td>
+        <td class="num">669</td>
+        <td class="num">1.93%</td>
+        <td class="num pnl-neg">-12,651</td>
+        <td class="num pnl-neg">-18.9</td>
+    </tr><tr>
+        <td>61+天</td>
+        <td class="num">17</td>
+        <td class="num">1.32%</td>
+        <td class="num">429</td>
+        <td class="num">1.24%</td>
+        <td class="num pnl-pos">65,599</td>
+        <td class="num pnl-pos">152.7</td>
+    </tr><tr>
+        <td>第三方</td>
+        <td class="num">13</td>
+        <td class="num">1.01%</td>
+        <td class="num">366</td>
+        <td class="num">1.05%</td>
+        <td class="num pnl-neg">-22,596</td>
+        <td class="num pnl-neg">-61.8</td>
+    </tr></tbody></table></div></div><div class="box">
+    <h4>采购员分布</h4>
+    <table class="data-table">
+        <thead><tr><th>采购员</th><th>订单数</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+        <tbody><tr>
+        <td><strong>武丽萍</strong></td>
+        <td class="num">1171</td>
+        <td class="num">31,015</td>
+        <td class="num">89.31%</td>
+        <td class="num pnl-neg">-1,361,805</td>
+        <td class="num pnl-neg">-43.9</td>
+    </tr><tr>
+        <td><strong>叶欣怡</strong></td>
+        <td class="num">61</td>
+        <td class="num">2,031</td>
+        <td class="num">5.85%</td>
+        <td class="num pnl-pos">100,972</td>
+        <td class="num pnl-pos">49.7</td>
+    </tr><tr>
+        <td><strong>雷振</strong></td>
+        <td class="num">25</td>
+        <td class="num">810</td>
+        <td class="num">2.33%</td>
+        <td class="num pnl-pos">53,643</td>
+        <td class="num pnl-pos">66.2</td>
+    </tr><tr>
+        <td><strong>汤英霞</strong></td>
+        <td class="num">14</td>
+        <td class="num">453</td>
+        <td class="num">1.30%</td>
+        <td class="num pnl-pos">27,561</td>
+        <td class="num pnl-pos">60.8</td>
+    </tr><tr>
+        <td><strong>叶林</strong></td>
+        <td class="num">17</td>
+        <td class="num">420</td>
+        <td class="num">1.21%</td>
+        <td class="num pnl-neg">-26,276</td>
+        <td class="num pnl-neg">-62.6</td>
+    </tr></tbody></table></div>
+
+    <div class="insight-box">
+        <p><strong>渠道与金融小结：</strong></p><p>1. 销售渠道：快塑华南为主要渠道（占规模75.66%）。</p><p>2. 金融类型：以先款为主（占规模51.65%）。</p>
+    </div>
+</div>
+
+<div class="section" id="cash-profile">
+    <div class="section-header">
+        <div class="section-num">9</div>
+        <h2>先款/当天回款客户画像</h2>
+    </div>
+    <p class="section-desc">筛选金融类型为"先款"和"当天回款"的订单，分析其客户结构特征。</p>
+
+    <div class="stat-grid-5">
+        <div class="stat-card accent">
+            <div class="stat-value">713</div>
+            <div class="stat-label">订单笔数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">18,271</div>
+            <div class="stat-label">交易规模（吨）</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-value">-921,761</div>
+            <div class="stat-label">总盈亏（元）</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">-50.4</div>
+            <div class="stat-label">吨均盈亏（元/吨）</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">243</div>
+            <div class="stat-label">客户数</div>
+        </div>
+    </div>
+<div class="chart-row"><div class="box">
+    <h4>客户类型分布</h4>
+    <table class="data-table">
+        <thead><tr><th>客户类型</th><th>客户数</th><th>订单数</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+        <tbody><tr>
+        <td><strong>终端</strong></td>
+        <td class="num">159</td>
+        <td class="num">344</td>
+        <td class="num">9,775</td>
+        <td class="num">53.50%</td>
+        <td class="num pnl-neg">-688,550</td>
+        <td class="num pnl-neg">-70.4</td>
+    </tr><tr>
+        <td><strong>贸易商</strong></td>
+        <td class="num">85</td>
+        <td class="num">369</td>
+        <td class="num">8,496</td>
+        <td class="num">46.50%</td>
+        <td class="num pnl-neg">-233,212</td>
+        <td class="num pnl-neg">-27.4</td>
+    </tr></tbody></table></div><div class="box">
+    <h4>客户规模分布</h4>
+    <table class="data-table">
+        <thead><tr><th>客户规模</th><th>客户数</th><th>订单数</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+        <tbody><tr>
+        <td><strong>大客户</strong></td>
+        <td class="num">9</td>
+        <td class="num">76</td>
+        <td class="num">2,154</td>
+        <td class="num">11.79%</td>
+        <td class="num pnl-neg">-100,227</td>
+        <td class="num pnl-neg">-46.5</td>
+    </tr><tr>
+        <td><strong>中客户</strong></td>
+        <td class="num">26</td>
+        <td class="num">40</td>
+        <td class="num">1,128</td>
+        <td class="num">6.17%</td>
+        <td class="num pnl-pos">9,101</td>
+        <td class="num pnl-pos">8.1</td>
+    </tr><tr>
+        <td><strong>小客户</strong></td>
+        <td class="num">124</td>
+        <td class="num">228</td>
+        <td class="num">6,493</td>
+        <td class="num">35.54%</td>
+        <td class="num pnl-neg">-597,424</td>
+        <td class="num pnl-neg">-92.0</td>
+    </tr><tr>
+        <td><strong>贸易商</strong></td>
+        <td class="num">85</td>
+        <td class="num">369</td>
+        <td class="num">8,496</td>
+        <td class="num">46.50%</td>
+        <td class="num pnl-neg">-233,212</td>
+        <td class="num pnl-neg">-27.4</td>
+    </tr></tbody></table></div></div><div class="chart-row"><div class="box">
+    <h4>客户复购率分布</h4>
+    <table class="data-table">
+        <thead><tr><th>复购率</th><th>客户数</th><th>订单数</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+        <tbody><tr>
+        <td>月月购</td>
+        <td class="num">28</td>
+        <td class="num">208</td>
+        <td class="num">3,997</td>
+        <td class="num">21.88%</td>
+        <td class="num pnl-pos">197,706</td>
+        <td class="num pnl-pos">49.5</td>
+    </tr><tr>
+        <td>二月购</td>
+        <td class="num">44</td>
+        <td class="num">248</td>
+        <td class="num">7,264</td>
+        <td class="num">39.76%</td>
+        <td class="num pnl-neg">-800,004</td>
+        <td class="num pnl-neg">-110.1</td>
+    </tr><tr>
+        <td>三月购</td>
+        <td class="num">41</td>
+        <td class="num">87</td>
+        <td class="num">2,402</td>
+        <td class="num">13.15%</td>
+        <td class="num pnl-neg">-125,324</td>
+        <td class="num pnl-neg">-52.2</td>
+    </tr><tr>
+        <td>四月购</td>
+        <td class="num">31</td>
+        <td class="num">49</td>
+        <td class="num">1,368</td>
+        <td class="num">7.49%</td>
+        <td class="num pnl-neg">-23,829</td>
+        <td class="num pnl-neg">-17.4</td>
+    </tr><tr>
+        <td>半年购</td>
+        <td class="num">17</td>
+        <td class="num">35</td>
+        <td class="num">956</td>
+        <td class="num">5.23%</td>
+        <td class="num pnl-neg">-29,744</td>
+        <td class="num pnl-neg">-31.1</td>
+    </tr><tr>
+        <td>年购</td>
+        <td class="num">71</td>
+        <td class="num">74</td>
+        <td class="num">1,953</td>
+        <td class="num">10.69%</td>
+        <td class="num pnl-neg">-116,359</td>
+        <td class="num pnl-neg">-59.6</td>
+    </tr><tr>
+        <td>无复购率</td>
+        <td class="num">11</td>
+        <td class="num">12</td>
+        <td class="num">330</td>
+        <td class="num">1.81%</td>
+        <td class="num pnl-neg">-24,207</td>
+        <td class="num pnl-neg">-73.4</td>
+    </tr></tbody></table></div><div class="box">
+    <h4>授信区间分布</h4>
+    <table class="data-table">
+        <thead><tr><th>授信区间</th><th>客户数</th><th>订单数</th><th>规模（吨）</th><th>规模占比</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+        <tbody><tr>
+        <td>未授信</td>
+        <td class="num">179</td>
+        <td class="num">529</td>
+        <td class="num">14,446</td>
+        <td class="num">79.07%</td>
+        <td class="num pnl-neg">-800,740</td>
+        <td class="num pnl-neg">-55.4</td>
+    </tr><tr>
+        <td>1-7天</td>
+        <td class="num">51</td>
+        <td class="num">104</td>
+        <td class="num">3,176</td>
+        <td class="num">17.39%</td>
+        <td class="num pnl-neg">-340,212</td>
+        <td class="num pnl-neg">-107.1</td>
+    </tr><tr>
+        <td>8-15天</td>
+        <td class="num">10</td>
+        <td class="num">68</td>
+        <td class="num">315</td>
+        <td class="num">1.72%</td>
+        <td class="num pnl-pos">202,738</td>
+        <td class="num pnl-pos">643.6</td>
+    </tr><tr>
+        <td>16-30天</td>
+        <td class="num">4</td>
+        <td class="num">10</td>
+        <td class="num">276</td>
+        <td class="num">1.51%</td>
+        <td class="num pnl-pos">11,359</td>
+        <td class="num pnl-pos">41.2</td>
+    </tr><tr>
+        <td>31天+</td>
+        <td class="num">2</td>
+        <td class="num">2</td>
+        <td class="num">57</td>
+        <td class="num">0.31%</td>
+        <td class="num pnl-pos">5,095</td>
+        <td class="num pnl-pos">89.4</td>
+    </tr></tbody></table></div></div><div class="box">
+    <h4>先款/当天回款 TOP客户明细（前15名）</h4>
+    <table class="data-table">
+        <thead><tr><th>#</th><th>客户名称</th><th>客户类型</th><th>客户规模</th><th>复购率</th><th>授信区间</th><th>订单数</th><th>规模（吨）</th><th>总盈亏</th><th>吨均盈亏</th></tr></thead>
+        <tbody><tr>
+        <td class="num">1</td>
+        <td>福建金塑宝供应链有限公司</td>
+        <td>贸易商</td>
+        <td>贸易商</td>
+        <td>二月购</td>
+        <td>未授信</td>
+        <td class="num">70</td>
+        <td class="num">2,256</td>
+        <td class="num pnl-neg">-33,537</td>
+        <td class="num pnl-neg">-14.9</td>
+    </tr><tr>
+        <td class="num">2</td>
+        <td>中山市嘉德龙厨房电器有限公司</td>
+        <td>终端</td>
+        <td>大客户</td>
+        <td>二月购</td>
+        <td>未授信</td>
+        <td class="num">64</td>
+        <td class="num">1,752</td>
+        <td class="num pnl-neg">-185,207</td>
+        <td class="num pnl-neg">-105.7</td>
+    </tr><tr>
+        <td class="num">3</td>
+        <td>广东常盛新材料有限公司</td>
+        <td>贸易商</td>
+        <td>贸易商</td>
+        <td>月月购</td>
+        <td>未授信</td>
+        <td class="num">39</td>
+        <td class="num">1,056</td>
+        <td class="num pnl-neg">-13,913</td>
+        <td class="num pnl-neg">-13.2</td>
+    </tr><tr>
+        <td class="num">4</td>
+        <td>广东杰盛塑胶有限公司</td>
+        <td>贸易商</td>
+        <td>贸易商</td>
+        <td>二月购</td>
+        <td>未授信</td>
+        <td class="num">24</td>
+        <td class="num">675</td>
+        <td class="num pnl-neg">-185,876</td>
+        <td class="num pnl-neg">-275.4</td>
+    </tr><tr>
+        <td class="num">5</td>
+        <td>广州添悦包装有限公司</td>
+        <td>终端</td>
+        <td>小客户</td>
+        <td>月月购</td>
+        <td>未授信</td>
+        <td class="num">13</td>
+        <td class="num">501</td>
+        <td class="num pnl-pos">4,206</td>
+        <td class="num pnl-pos">8.4</td>
+    </tr><tr>
+        <td class="num">6</td>
+        <td>佛山市高明区新裕丰塑业有限公司</td>
+        <td>终端</td>
+        <td>小客户</td>
+        <td>月月购</td>
+        <td>1-7天</td>
+        <td class="num">13</td>
+        <td class="num">420</td>
+        <td class="num pnl-neg">-83,688</td>
+        <td class="num pnl-neg">-199.3</td>
+    </tr><tr>
+        <td class="num">7</td>
+        <td>广州塑信供应链有限公司</td>
+        <td>贸易商</td>
+        <td>贸易商</td>
+        <td>月月购</td>
+        <td>未授信</td>
+        <td class="num">15</td>
+        <td class="num">414</td>
+        <td class="num pnl-pos">293</td>
+        <td class="num pnl-pos">0.7</td>
+    </tr><tr>
+        <td class="num">8</td>
+        <td>佛山市雁元绿田塑料管有限公司</td>
+        <td>终端</td>
+        <td>大客户</td>
+        <td>月月购</td>
+        <td>1-7天</td>
+        <td class="num">10</td>
+        <td class="num">330</td>
+        <td class="num pnl-pos">14,298</td>
+        <td class="num pnl-pos">43.3</td>
+    </tr><tr>
+        <td class="num">9</td>
+        <td>佛山市顺德区泰合包装材料有限公司</td>
+        <td>终端</td>
+        <td>小客户</td>
+        <td>二月购</td>
+        <td>1-7天</td>
+        <td class="num">3</td>
+        <td class="num">270</td>
+        <td class="num pnl-neg">-260,577</td>
+        <td class="num pnl-neg">-965.1</td>
+    </tr><tr>
+        <td class="num">10</td>
+        <td>佛山市顺德区强富电器有限公司</td>
+        <td>终端</td>
+        <td>小客户</td>
+        <td>二月购</td>
+        <td>未授信</td>
+        <td class="num">9</td>
+        <td class="num">243</td>
+        <td class="num pnl-neg">-20,719</td>
+        <td class="num pnl-neg">-85.3</td>
+    </tr><tr>
+        <td class="num">11</td>
+        <td>甘肃龙昌石化集团有限公司</td>
+        <td>贸易商</td>
+        <td>贸易商</td>
+        <td>二月购</td>
+        <td>未授信</td>
+        <td class="num">8</td>
+        <td class="num">219</td>
+        <td class="num pnl-neg">-17,020</td>
+        <td class="num pnl-neg">-77.7</td>
+    </tr><tr>
+        <td class="num">12</td>
+        <td>广东泓洲新材料有限公司</td>
+        <td>贸易商</td>
+        <td>贸易商</td>
+        <td>三月购</td>
+        <td>未授信</td>
+        <td class="num">8</td>
+        <td class="num">216</td>
+        <td class="num pnl-pos">2,776</td>
+        <td class="num pnl-pos">12.9</td>
+    </tr><tr>
+        <td class="num">13</td>
+        <td>网塑(宁波)供应链管理有限公司</td>
+        <td>终端</td>
+        <td>小客户</td>
+        <td>半年购</td>
+        <td>未授信</td>
+        <td class="num">8</td>
+        <td class="num">189</td>
+        <td class="num pnl-neg">-6,168</td>
+        <td class="num pnl-neg">-32.6</td>
+    </tr><tr>
+        <td class="num">14</td>
+        <td>东莞市岳东鞋材有限公司</td>
+        <td>终端</td>
+        <td>小客户</td>
+        <td>月月购</td>
+        <td>1-7天</td>
+        <td class="num">7</td>
+        <td class="num">189</td>
+        <td class="num pnl-neg">-5,631</td>
+        <td class="num pnl-neg">-29.8</td>
+    </tr><tr>
+        <td class="num">15</td>
+        <td>东莞市匠星新材料科技有限公司</td>
+        <td>终端</td>
+        <td>大客户</td>
+        <td>月月购</td>
+        <td>1-7天</td>
+        <td class="num">6</td>
+        <td class="num">162</td>
+        <td class="num pnl-pos">20,499</td>
+        <td class="num pnl-pos">126.5</td>
+    </tr></tbody></table></div>
+
+    <div class="insight-box">
+        <p><strong>先款/当天回款客户画像小结：</strong></p>
+        <p>1. 先款/当天回款订单共 <strong>713</strong> 笔（18,271 吨），占总规模的 52.61%，亏损 921,761 元。</p>
+        <p>2. 客户类型：终端占规模 53.50%（159个客户），贸易商占 46.50%。</p>
+        <p>3. 未授信客户占先款规模的 79.07%（179个客户），说明先款交易以无账期授信的客户为主。</p>
+    </div>
+</div>
+
+<div class="section" id="summary">
+    <div class="section-header">
+        <div class="section-num">10</div>
+        <h2>总结</h2>
+    </div>
+
+    <div class="insight-box insight-warn" style="border-left-width: 6px;">
+        <p style="font-size: 16px; font-weight: 700; margin-bottom: 10px;">综合分析结论</p>
+        <p><strong>1. 整体交易亏损：</strong>2025年1月 — 2026年5月期间，中石油系货源囤货交易合计亏损约 <strong>1,205,906</strong> 元（34,729 吨），吨均亏损 34.7 元/吨。涉及 7 位囤货人。</p>
+        <p><strong>2. 空单补货是亏损主因：</strong>空单补货订单亏损 941,070 元（193笔，5,706吨），占总亏损的 78.04%，吨均亏损 164.9 元/吨，远高于非空单补货订单的吨均亏损。</p>
+        <p><strong>3. 囤货人集中度高：</strong>刘俊晖贡献了 82.05% 的交易规模，其余囤货人中叶欣怡、武丽萍、汤英霞、雷振整体盈利。</p>
+        <p><strong>4. 2026年亏损加速：</strong>2025全年亏损 196,376 元，2026年1-4月亏损已达 1,009,530 元。规模扩大的同时吨均亏损加深。</p>
+        <p><strong>5. 先款订单承压：</strong>先款/当天回款订单占总规模 52.61%，吨均亏损 50.4 元/吨，以终端和未授信客户为主。</p>
+    </div>
+</div>
+
+</div>
+
+<script>
+const monthLabels = ['2025-01', '2025-02', '2025-03', '2025-04', '2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05'];
+const monthTons = [570, 516, 498, 512, 1290, 1216, 2328, 1485, 1509, 1731, 3886, 4159, 4014, 1946, 2586, 2776, 3706];
+const monthPnl = [4518, 27288, 10144, 58192, -60789, 10174, -37017, 3356, 43098, -21122, 21032, -255250, -250194, -18223, -585693, -228221, 72802];
+const monthCount = [23, 25, 21, 28, 46, 52, 88, 62, 58, 68, 135, 141, 141, 66, 87, 109, 138];
+const monthAvg = [7.9, 52.9, 20.4, 113.5, -47.1, 8.4, -15.9, 2.3, 28.6, -12.2, 5.4, -61.4, -62.3, -9.4, -226.5, -82.2, 19.6];
+
+new Chart(document.getElementById('monthlyTons'), {
+    type: 'bar',
+    data: {
+        labels: monthLabels,
+        datasets: [
+            { label: '规模(吨)', data: monthTons, backgroundColor: '#3b82f6', borderRadius: 4, yAxisID: 'y' },
+            { label: '订单数', data: monthCount, type: 'line', borderColor: '#f59e0b', backgroundColor: '#f59e0b', pointRadius: 3, yAxisID: 'y1', tension: 0.3 }
+        ]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, title: { display: true, text: '吨' } },
+            y1: { position: 'right', beginAtZero: true, grid: { display: false }, title: { display: true, text: '订单数' } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+
+new Chart(document.getElementById('monthlyPnl'), {
+    type: 'bar',
+    data: {
+        labels: monthLabels,
+        datasets: [
+            { label: '总盈亏(元)', data: monthPnl, backgroundColor: monthPnl.map(v => v >= 0 ? '#10b981' : '#ef4444'), borderRadius: 4, yAxisID: 'y' },
+            { label: '吨均盈亏(元/吨)', data: monthAvg, type: 'line', borderColor: '#6366f1', backgroundColor: '#6366f1', pointRadius: 3, yAxisID: 'y1', tension: 0.3 }
+        ]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } },
+        scales: {
+            y: { grid: { color: '#f1f5f9' }, title: { display: true, text: '元' } },
+            y1: { position: 'right', grid: { display: false }, title: { display: true, text: '元/吨' } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+
+const compLabels = ["01月", "02月", "03月", "04月", "05月", "06月", "07月", "08月", "09月", "10月", "11月", "12月"];
+new Chart(document.getElementById('yearCompTons'), {
+    type: 'bar',
+    data: {
+        labels: compLabels,
+        datasets: [
+            { label: '2025年', data: [570, 516, 498, 512, 1290, 1216, 2328, 1485, 1509, 1731, 3886, 4159], backgroundColor: '#3b82f6', borderRadius: 4 },
+            { label: '2026年', data: [4014, 1946, 2586, 2776, 3706, 0, 0, 0, 0, 0, 0, 0], backgroundColor: '#f97316', borderRadius: 4 }
+        ]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } },
+        scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+    }
+});
+
+new Chart(document.getElementById('yearCompPnl'), {
+    type: 'bar',
+    data: {
+        labels: compLabels,
+        datasets: [
+            { label: '2025年', data: [4518, 27288, 10144, 58192, -60789, 10174, -37017, 3356, 43098, -21122, 21032, -255250], backgroundColor: '#3b82f680', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 4 },
+            { label: '2026年', data: [-250194, -18223, -585693, -228221, 72802, 0, 0, 0, 0, 0, 0, 0], backgroundColor: '#f9731680', borderColor: '#f97316', borderWidth: 1, borderRadius: 4 }
+        ]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } },
+        scales: { y: { grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+    }
+});
+
+new Chart(document.getElementById('yearCompAvg'), {
+    type: 'line',
+    data: {
+        labels: compLabels,
+        datasets: [
+            { label: '2025年', data: [7.9, 52.9, 20.4, 113.5, -47.1, 8.4, -15.9, 2.3, 28.6, -12.2, 5.4, -61.4], borderColor: '#3b82f6', backgroundColor: '#3b82f620', pointRadius: 4, tension: 0.3, fill: true, spanGaps: false },
+            { label: '2026年', data: [-62.3, -9.4, -226.5, -82.2, 19.6, null, null, null, null, null, null, null], borderColor: '#f97316', backgroundColor: '#f9731620', pointRadius: 4, tension: 0.3, fill: true, spanGaps: false }
+        ]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } },
+        scales: { y: { grid: { color: '#f1f5f9' }, title: { display: true, text: '元/吨' } }, x: { grid: { display: false } } }
+    }
+});
+
+new Chart(document.getElementById('prodTons'), {
+    type: 'bar',
+    data: {
+        labels: ["辽宁宝来", "广西石化", "广东石化", "中海壳牌", "吉林石化（揭阳）", "中化泉州", "大庆炼化", "吉林石化"],
+        datasets: [{ label: '规模(吨)', data: [19926, 7412, 5430, 1431, 300, 81, 60, 60], backgroundColor: ['#2563eb','#7c3aed','#059669','#f59e0b','#06b6d4','#ef4444','#ec4899','#84cc16'], borderRadius: 4 }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } }
+    }
+});
+
+new Chart(document.getElementById('prodPnl'), {
+    type: 'bar',
+    data: {
+        labels: ["辽宁宝来", "广西石化", "广东石化", "中海壳牌", "吉林石化（揭阳）", "中化泉州", "大庆炼化", "吉林石化"],
+        datasets: [{ label: '总盈亏(元)', data: [-919324, -438928, 68321, 52162, 20207, -341, 8865, 1757], backgroundColor: [-919324, -438928, 68321, 52162, 20207, -341, 8865, 1757].map(v => v >= 0 ? '#10b981' : '#ef4444'), borderRadius: 4 }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } }
+    }
+});
+
+new Chart(document.getElementById('traderTons'), {
+    type: 'bar',
+    data: {
+        labels: ["刘俊晖", "张键洪", "叶欣怡", "张子奇", "武丽萍", "汤英霞", "雷振"],
+        datasets: [{ label: '规模(吨)', data: [28497, 3236, 1350, 630, 384, 333, 300], backgroundColor: ['#2563eb','#7c3aed','#059669','#f59e0b','#06b6d4','#ef4444','#ec4899','#84cc16'], borderRadius: 4 }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } }
+    }
+});
+
+new Chart(document.getElementById('traderPnl'), {
+    type: 'bar',
+    data: {
+        labels: ["刘俊晖", "张键洪", "叶欣怡", "张子奇", "武丽萍", "汤英霞", "雷振"],
+        datasets: [{ label: '总盈亏(元)', data: [-1314626, -29613, 72304, -28512, 42150, 30032, 22360], backgroundColor: [-1314626, -29613, 72304, -28512, 42150, 30032, 22360].map(v => v >= 0 ? '#10b981' : '#ef4444'), borderRadius: 4 }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } }
+    }
+});
+</script>
+
+</body>
+</html>
